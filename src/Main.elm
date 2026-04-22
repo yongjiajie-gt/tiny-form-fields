@@ -781,34 +781,46 @@ update msg model =
             )
 
         SelectField fieldIndex ->
-            case ( model.selectedFieldIndex, fieldIndex ) of
-                ( Just prevIndex, Nothing ) ->
-                    ( { model
-                        | selectedFieldIndex = Nothing
-                        , viewMode = Editor { maybeAnimate = Just ( prevIndex, AnimateYellowFade ) }
-                      }
-                    , Cmd.none
-                    )
+            if selectedFieldIsInvalid model then
+                ( model, Cmd.none )
 
-                _ ->
-                    ( { model | selectedFieldIndex = fieldIndex }
-                    , Cmd.none
-                    )
+            else
+                case ( model.selectedFieldIndex, fieldIndex ) of
+                    ( Just prevIndex, Nothing ) ->
+                        ( { model
+                            | selectedFieldIndex = Nothing
+                            , viewMode = Editor { maybeAnimate = Just ( prevIndex, AnimateYellowFade ) }
+                          }
+                        , Cmd.none
+                        )
+
+                    _ ->
+                        ( { model | selectedFieldIndex = fieldIndex }
+                        , Cmd.none
+                        )
 
         DragStart fieldIndex ->
-            ( { model
-                | dragged = Just (DragExisting { dragIndex = fieldIndex, dropIndex = Nothing }) -- use index as initial dropTargetIndex
-                , selectedFieldIndex = Nothing
-              }
-            , Cmd.none
-            )
+            if selectedFieldIsInvalid model then
+                ( model, Cmd.none )
+
+            else
+                ( { model
+                    | dragged = Just (DragExisting { dragIndex = fieldIndex, dropIndex = Nothing }) -- use index as initial dropTargetIndex
+                    , selectedFieldIndex = Nothing
+                  }
+                , Cmd.none
+                )
 
         DragStartNew fieldIndex ->
-            ( { model
-                | dragged = Just (DragNew { field = fieldIndex, dropIndex = Just ( 0, Nothing ) }) -- new field starts at index 0
-              }
-            , Cmd.none
-            )
+            if selectedFieldIsInvalid model then
+                ( model, Cmd.none )
+
+            else
+                ( { model
+                    | dragged = Just (DragNew { field = fieldIndex, dropIndex = Just ( 0, Nothing ) }) -- new field starts at index 0
+                  }
+                , Cmd.none
+                )
 
         DragEnd ->
             case model.dragged of
@@ -3003,13 +3015,16 @@ viewFormFieldBuilder shortTextTypeList index totalLength formFields formField =
         isDuplicateLabel =
             hasDuplicateLabel index formField.label formFields
 
+        isEmptyLabel =
+            String.isEmpty (String.trim formField.label)
+
         patternAttr =
-            if isDuplicateLabel then
+            if isDuplicateLabel || isEmptyLabel then
                 -- always invalid
                 [ Attr.pattern "^$" ]
 
             else
-                [ Attr.pattern ".*" ]
+                [ Attr.pattern ".+" ]
 
         configureMultipleCheckbox =
             div [ class "tff-field-group" ]
@@ -3074,6 +3089,9 @@ viewFormFieldBuilder shortTextTypeList index totalLength formFields formField =
                 []
             , if isDuplicateLabel then
                 div [ class "tff-error-text" ] [ text "Question titles must be unique in a form" ]
+
+              else if isEmptyLabel then
+                div [ class "tff-error-text" ] [ text "Question title cannot be empty" ]
 
               else
                 text ""
@@ -3639,6 +3657,22 @@ hasDuplicateLabel currentIndex newLabel formFields =
         |> List.indexedMap (\i f -> ( i, f ))
         |> List.filter (\( i, _ ) -> i /= currentIndex)
         |> List.any (\( _, f ) -> f.label == newLabel)
+
+
+selectedFieldIsInvalid : Model -> Bool
+selectedFieldIsInvalid model =
+    case model.selectedFieldIndex of
+        Just prevIndex ->
+            case Array.get prevIndex model.formFields of
+                Just formField ->
+                    String.isEmpty (String.trim formField.label)
+                        || hasDuplicateLabel prevIndex formField.label model.formFields
+
+                Nothing ->
+                    False
+
+        Nothing ->
+            False
 
 
 
