@@ -5,8 +5,7 @@
   "required": [
     "viewMode",
     "formFields",
-    "formValues",
-    "shortTextTypeList"
+    "formValues"
   ],
   "properties": {
     "viewMode": {
@@ -367,6 +366,17 @@
                                 "type": "string"
                               }
                             }
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "FilterStartsWithPrefix"
+                            ],
+                            "properties": {
+                              "FilterStartsWithPrefix": {
+                                "type": "string"
+                              }
+                            }
                           }
                         ]
                       }
@@ -435,6 +445,17 @@
                             ],
                             "properties": {
                               "FilterContainsFieldValueOf": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "FilterStartsWithPrefix"
+                            ],
+                            "properties": {
+                              "FilterStartsWithPrefix": {
                                 "type": "string"
                               }
                             }
@@ -528,6 +549,17 @@
                             ],
                             "properties": {
                               "FilterContainsFieldValueOf": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "FilterStartsWithPrefix"
+                            ],
+                            "properties": {
+                              "FilterStartsWithPrefix": {
                                 "type": "string"
                               }
                             }
@@ -737,6 +769,495 @@
                 }
               }
             ]
+          }
+        }
+      },
+      "type": "array"
+    },
+    "inputFieldGroups": {
+      "items": {
+        "type": "object",
+        "required": [
+          "heading",
+          "fields"
+        ],
+        "properties": {
+          "heading": {
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "customElement"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "ShortText"
+                    },
+                    "customElement": {
+                      "type": "object",
+                      "required": [
+                        "inputType",
+                        "inputTag",
+                        "attributes",
+                        "multiple",
+                        "maxlength",
+                        "datalist",
+                        "min",
+                        "max"
+                      ],
+                      "properties": {
+                        "inputType": {
+                          "type": "string"
+                        },
+                        "inputTag": {
+                          "type": "string"
+                        },
+                        "attributes": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "multiple": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "boolean"
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "AttributeInvalid"
+                              ],
+                              "properties": {
+                                "AttributeInvalid": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "maxlength": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "integer"
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "AttributeInvalid"
+                              ],
+                              "properties": {
+                                "AttributeInvalid": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "datalist": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "items": {
+                                "oneOf": [
+                                  {
+                                    "type": "string"
+                                  },
+                                  {
+                                    "type": "object",
+                                    "required": [
+                                      "label",
+                                      "value"
+                                    ],
+                                    "properties": {
+                                      "label": {
+                                        "type": "string"
+                                      },
+                                      "value": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "type": "array"
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "AttributeInvalid"
+                              ],
+                              "properties": {
+                                "AttributeInvalid": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "min": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "AttributeInvalid"
+                              ],
+                              "properties": {
+                                "AttributeInvalid": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "max": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "AttributeInvalid"
+                              ],
+                              "properties": {
+                                "AttributeInvalid": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "maxlength"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "LongText"
+                    },
+                    "maxlength": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "AttributeInvalid"
+                          ],
+                          "properties": {
+                            "AttributeInvalid": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "choices",
+                    "filter"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "Dropdown"
+                    },
+                    "choices": {
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "label",
+                              "value"
+                            ],
+                            "properties": {
+                              "label": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "filter": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "FilterStartsWithFieldValueOf"
+                              ],
+                              "properties": {
+                                "FilterStartsWithFieldValueOf": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "FilterContainsFieldValueOf"
+                              ],
+                              "properties": {
+                                "FilterContainsFieldValueOf": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "FilterStartsWithPrefix"
+                              ],
+                              "properties": {
+                                "FilterStartsWithPrefix": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "choices",
+                    "filter"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "ChooseOne"
+                    },
+                    "choices": {
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "label",
+                              "value"
+                            ],
+                            "properties": {
+                              "label": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "filter": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "FilterStartsWithFieldValueOf"
+                              ],
+                              "properties": {
+                                "FilterStartsWithFieldValueOf": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "FilterContainsFieldValueOf"
+                              ],
+                              "properties": {
+                                "FilterContainsFieldValueOf": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "FilterStartsWithPrefix"
+                              ],
+                              "properties": {
+                                "FilterStartsWithPrefix": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "type",
+                    "choices",
+                    "minRequired",
+                    "maxAllowed",
+                    "filter"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "ChooseMultiple"
+                    },
+                    "choices": {
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "label",
+                              "value"
+                            ],
+                            "properties": {
+                              "label": {
+                                "type": "string"
+                              },
+                              "value": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    },
+                    "minRequired": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "maxAllowed": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "integer"
+                        }
+                      ]
+                    },
+                    "filter": {
+                      "anyOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "FilterStartsWithFieldValueOf"
+                              ],
+                              "properties": {
+                                "FilterStartsWithFieldValueOf": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "FilterContainsFieldValueOf"
+                              ],
+                              "properties": {
+                                "FilterContainsFieldValueOf": {
+                                  "type": "string"
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "FilterStartsWithPrefix"
+                              ],
+                              "properties": {
+                                "FilterStartsWithPrefix": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              ]
+            },
+            "type": "array"
           }
         }
       },
