@@ -481,6 +481,7 @@ type FormFieldMsg
     | OnFilterToggle Bool
     | OnFilterTypeSelect String
     | OnFilterSourceFieldSelect String
+    | OnFilterPrefixInput String
 
 
 otherQuestionTitles : Array FormField -> Int -> List { label : String, name : Maybe String }
@@ -581,6 +582,9 @@ isFieldUsedInChoiceFilter fieldName maybeFilter =
 
         Just (FilterContainsFieldValueOf sourceField) ->
             sourceField == fieldName
+
+        Just (FilterStartsWithPrefix _) ->
+            False
 
         Nothing ->
             False
@@ -1485,33 +1489,38 @@ updateFormField msg fieldIndex string formFields formField =
                     formField
 
         OnFilterTypeSelect filterType ->
-            -- Update filter type (startsWith/contains) while preserving the source field
             let
                 updateFilter existingFilter =
-                    case existingFilter of
-                        Just (FilterStartsWithFieldValueOf fieldName) ->
-                            if filterType == "contains" then
-                                Just (FilterContainsFieldValueOf fieldName)
+                    case ( filterType, existingFilter ) of
+                        ( "startswith", Just (FilterContainsFieldValueOf fieldName) ) ->
+                            Just (FilterStartsWithFieldValueOf fieldName)
 
-                            else
-                                existingFilter
+                        ( "startswith", Just (FilterStartsWithPrefix _) ) ->
+                            Just (FilterStartsWithFieldValueOf "")
 
-                        Just (FilterContainsFieldValueOf fieldName) ->
-                            if filterType == "startswith" then
-                                Just (FilterStartsWithFieldValueOf fieldName)
+                        ( "contains", Just (FilterStartsWithFieldValueOf fieldName) ) ->
+                            Just (FilterContainsFieldValueOf fieldName)
 
-                            else
-                                existingFilter
+                        ( "contains", Just (FilterStartsWithPrefix _) ) ->
+                            Just (FilterContainsFieldValueOf "")
 
-                        Nothing ->
-                            if filterType == "startswith" then
-                                Just (FilterStartsWithFieldValueOf "")
+                        ( "startswithprefix", Just (FilterStartsWithFieldValueOf _) ) ->
+                            Just (FilterStartsWithPrefix "")
 
-                            else if filterType == "contains" then
-                                Just (FilterContainsFieldValueOf "")
+                        ( "startswithprefix", Just (FilterContainsFieldValueOf _) ) ->
+                            Just (FilterStartsWithPrefix "")
 
-                            else
-                                Nothing
+                        ( "startswith", Nothing ) ->
+                            Just (FilterStartsWithFieldValueOf "")
+
+                        ( "contains", Nothing ) ->
+                            Just (FilterContainsFieldValueOf "")
+
+                        ( "startswithprefix", Nothing ) ->
+                            Just (FilterStartsWithPrefix "")
+
+                        _ ->
+                            existingFilter
             in
             case formField.type_ of
                 Dropdown settings ->
@@ -1527,7 +1536,6 @@ updateFormField msg fieldIndex string formFields formField =
                     formField
 
         OnFilterSourceFieldSelect fieldName ->
-            -- Update source field while preserving the filter type
             let
                 updateSourceField existingFilter =
                     case existingFilter of
@@ -1536,6 +1544,9 @@ updateFormField msg fieldIndex string formFields formField =
 
                         Just (FilterContainsFieldValueOf _) ->
                             Just (FilterContainsFieldValueOf fieldName)
+
+                        Just (FilterStartsWithPrefix _) ->
+                            existingFilter
 
                         Nothing ->
                             Just (FilterStartsWithFieldValueOf fieldName)
@@ -1549,6 +1560,29 @@ updateFormField msg fieldIndex string formFields formField =
 
                 ChooseMultiple settings ->
                     { formField | type_ = ChooseMultiple { settings | filter = updateSourceField settings.filter } }
+
+                _ ->
+                    formField
+
+        OnFilterPrefixInput prefix ->
+            let
+                updatePrefix existingFilter =
+                    case existingFilter of
+                        Just (FilterStartsWithPrefix _) ->
+                            Just (FilterStartsWithPrefix prefix)
+
+                        _ ->
+                            existingFilter
+            in
+            case formField.type_ of
+                Dropdown settings ->
+                    { formField | type_ = Dropdown { settings | filter = updatePrefix settings.filter } }
+
+                ChooseOne settings ->
+                    { formField | type_ = ChooseOne { settings | filter = updatePrefix settings.filter } }
+
+                ChooseMultiple settings ->
+                    { formField | type_ = ChooseMultiple { settings | filter = updatePrefix settings.filter } }
 
                 _ ->
                     formField
@@ -1876,6 +1910,9 @@ fieldHasEmptyFilter formField trackedFormValues =
 
                 Just (FilterContainsFieldValueOf fieldName) ->
                     Just fieldName
+
+                Just (FilterStartsWithPrefix _) ->
+                    Nothing
 
                 Nothing ->
                     Nothing
@@ -3381,6 +3418,9 @@ viewFormFieldOptionsBuilder shortTextTypeList index formFields formField =
                             Just (FilterContainsFieldValueOf _) ->
                                 "contains"
 
+                            Just (FilterStartsWithPrefix _) ->
+                                "startswithprefix"
+
                             Nothing ->
                                 "startswith"
 
@@ -3392,7 +3432,18 @@ viewFormFieldOptionsBuilder shortTextTypeList index formFields formField =
                             Just (FilterContainsFieldValueOf name) ->
                                 name
 
+                            Just (FilterStartsWithPrefix _) ->
+                                ""
+
                             Nothing ->
+                                ""
+
+                    prefixValue =
+                        case filter of
+                            Just (FilterStartsWithPrefix p) ->
+                                p
+
+                            _ ->
                                 ""
 
                     otherFields =
@@ -3409,41 +3460,55 @@ viewFormFieldOptionsBuilder shortTextTypeList index formFields formField =
                                 ]
                                 [ option [ value "startswith" ] [ text "Show choices that starts with" ]
                                 , option [ value "contains" ] [ text "Show choices that contains" ]
+                                , option [ value "startswithprefix" ] [ text "Show choices that start with prefix" ]
                                 ]
                             ]
                         ]
                     , div [ class "tff-field-group mb-0" ]
-                        [ div [ class "tff-dropdown-group" ]
-                            [ selectArrowDown
-                            , select
-                                [ class "tff-select"
-                                , onChange (\fieldName -> OnFormField (OnFilterSourceFieldSelect fieldName) index "")
-                                , value sourceFieldName
+                        (if filterType == "startswithprefix" then
+                            [ input
+                                [ type_ "text"
+                                , class "tff-text-field"
+                                , placeholder "Enter prefix..."
+                                , value prefixValue
+                                , onInput (\v -> OnFormField (OnFilterPrefixInput v) index "")
                                 ]
-                                (option
-                                    [ value ""
-                                    , selected (String.isEmpty sourceFieldName)
-                                    ]
-                                    [ text "-- Select a field --" ]
-                                    :: List.map
-                                        (\field ->
-                                            let
-                                                fieldValue =
-                                                    field.name |> Maybe.withDefault field.label
-
-                                                isSelected =
-                                                    fieldValue == sourceFieldName
-                                            in
-                                            option
-                                                [ value fieldValue
-                                                , selected isSelected
-                                                ]
-                                                [ text ("value of " ++ Json.Encode.encode 0 (Json.Encode.string field.label)) ]
-                                        )
-                                        otherFields
-                                )
+                                []
                             ]
-                        ]
+
+                         else
+                            [ div [ class "tff-dropdown-group" ]
+                                [ selectArrowDown
+                                , select
+                                    [ class "tff-select"
+                                    , onChange (\fieldName -> OnFormField (OnFilterSourceFieldSelect fieldName) index "")
+                                    , value sourceFieldName
+                                    ]
+                                    (option
+                                        [ value ""
+                                        , selected (String.isEmpty sourceFieldName)
+                                        ]
+                                        [ text "-- Select a field --" ]
+                                        :: List.map
+                                            (\field ->
+                                                let
+                                                    fieldValue =
+                                                        field.name |> Maybe.withDefault field.label
+
+                                                    isSelected =
+                                                        fieldValue == sourceFieldName
+                                                in
+                                                option
+                                                    [ value fieldValue
+                                                    , selected isSelected
+                                                    ]
+                                                    [ text ("value of " ++ Json.Encode.encode 0 (Json.Encode.string field.label)) ]
+                                            )
+                                            otherFields
+                                    )
+                                ]
+                            ]
+                        )
                     ]
                 ]
 
@@ -4327,6 +4392,12 @@ encodeChoiceFilter filter =
                 , ( "fieldName", Json.Encode.string fieldName )
                 ]
 
+        FilterStartsWithPrefix prefix ->
+            Json.Encode.object
+                [ ( "type", Json.Encode.string "FilterStartsWithPrefix" )
+                , ( "prefix", Json.Encode.string prefix )
+                ]
+
 
 encodeInputField : InputField -> Json.Encode.Value
 encodeInputField inputField =
@@ -4413,6 +4484,10 @@ decodeChoiceFilter =
                     "FilterContains" ->
                         Json.Decode.map FilterContainsFieldValueOf
                             (Json.Decode.field "fieldName" Json.Decode.string)
+
+                    "FilterStartsWithPrefix" ->
+                        Json.Decode.map FilterStartsWithPrefix
+                            (Json.Decode.field "prefix" Json.Decode.string)
 
                     _ ->
                         Json.Decode.fail ("Unknown choice filter type: " ++ type_)
@@ -5198,6 +5273,7 @@ textarea attrs children =
 type ChoiceFilter
     = FilterStartsWithFieldValueOf String
     | FilterContainsFieldValueOf String
+    | FilterStartsWithPrefix String
 
 
 filterChoices : Maybe ChoiceFilter -> Dict String (List String) -> List Choice -> List Choice
@@ -5252,7 +5328,21 @@ filterChoices maybeFilter formValues choices =
                     []
 
         -- Hide choices when field is not found
-        -- No filter value, show all choices
+        Just (FilterStartsWithPrefix prefix) ->
+            if String.isEmpty prefix then
+                choices
+
+            else
+                List.filter
+                    (\choice ->
+                        String.startsWith
+                            (String.toLower prefix)
+                            (String.toLower choice.value)
+                            || String.startsWith
+                                (String.toLower prefix)
+                                (String.toLower choice.label)
+                    )
+                    choices
+
         Nothing ->
-            -- No filtering, return all choices
             choices

@@ -225,6 +225,12 @@ choiceFilterSchemaBuilder =
                     [ ( "FilterContainsFieldValueOf", buildSchema |> withType "string" )
                     ]
                 |> withRequired [ "FilterContainsFieldValueOf" ]
+            , buildSchema
+                |> withType "object"
+                |> withProperties
+                    [ ( "FilterStartsWithPrefix", buildSchema |> withType "string" )
+                    ]
+                |> withRequired [ "FilterStartsWithPrefix" ]
             ]
 
 

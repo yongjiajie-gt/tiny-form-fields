@@ -379,6 +379,24 @@ func TestGenerateGoFixtures(t *testing.T) {
 					},
 					VisibilityRule: nil,
 				},
+				{
+					Label:       "prefix-filter",
+					Name:        "",
+					Description: "",
+					Presence: TinyFormFieldPresence{
+						Type: "Optional",
+						Name: "",
+					},
+					Type: &ChooseOneField{
+						Type:    "ChooseOne",
+						Choices: []string{"venue-a-1 | Venue A Room 1", "venue-b-1 | Venue B Room 1"},
+						Filter: &ChoiceFilter{
+							Type:   "FilterStartsWithPrefix",
+							Prefix: "venue-a",
+						},
+					},
+					VisibilityRule: nil,
+				},
 			},
 		},
 		{

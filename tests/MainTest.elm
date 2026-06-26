@@ -1336,6 +1336,49 @@ suite =
                     in
                     Main.filterChoices (Just (Main.FilterStartsWithFieldValueOf "source")) formValues choices
                         |> Expect.equal []
+            , test "FilterStartsWithPrefix filters by literal prefix case-insensitively" <|
+                \_ ->
+                    let
+                        choices =
+                            [ Main.Choice "venue-a-hall1" "Venue A Hall 1"
+                            , Main.Choice "venue-a-hall2" "Venue A Hall 2"
+                            , Main.Choice "venue-b-hall1" "Venue B Hall 1"
+                            ]
+
+                        formValues =
+                            Dict.empty
+                    in
+                    Main.filterChoices (Just (Main.FilterStartsWithPrefix "venue-a")) formValues choices
+                        |> Expect.equal
+                            [ Main.Choice "venue-a-hall1" "Venue A Hall 1"
+                            , Main.Choice "venue-a-hall2" "Venue A Hall 2"
+                            ]
+            , test "FilterStartsWithPrefix with empty prefix returns all choices" <|
+                \_ ->
+                    let
+                        choices =
+                            [ Main.Choice "apple" "apple"
+                            , Main.Choice "banana" "banana"
+                            ]
+
+                        formValues =
+                            Dict.empty
+                    in
+                    Main.filterChoices (Just (Main.FilterStartsWithPrefix "")) formValues choices
+                        |> Expect.equal choices
+            , test "FilterStartsWithPrefix with no-match prefix returns empty list" <|
+                \_ ->
+                    let
+                        choices =
+                            [ Main.Choice "apple" "apple"
+                            , Main.Choice "banana" "banana"
+                            ]
+
+                        formValues =
+                            Dict.empty
+                    in
+                    Main.filterChoices (Just (Main.FilterStartsWithPrefix "xyz")) formValues choices
+                        |> Expect.equal []
             ]
         , describe "filterValuesByFieldChoices"
             [ test "filters ChooseMultiple field values to only valid choices" <|
@@ -1627,6 +1670,10 @@ moreTestInputFields =
         , minRequired = Nothing
         , maxAllowed = Nothing
         , filter = Just (Main.FilterStartsWithFieldValueOf "sourceField")
+        }
+    , Main.ChooseOne
+        { choices = [ Main.Choice "option1" "option1", Main.Choice "option2" "option2" ]
+        , filter = Just (Main.FilterStartsWithPrefix "venue-a")
         }
     ]
 
