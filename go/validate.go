@@ -208,9 +208,13 @@ func applyPrefixFilter(choices []string, filter *ChoiceFilter) []string {
 		return choices
 	}
 	prefix := strings.ToLower(filter.Prefix)
-	return slices.DeleteFunc(choices, func(c string) bool {
-		return !strings.HasPrefix(strings.ToLower(c), prefix)
-	})
+	var result []string
+	for _, c := range choices {
+		if strings.HasPrefix(strings.ToLower(c), prefix) {
+			result = append(result, c)
+		}
+	}
+	return result
 }
 
 // parseChoices parses the choices array, handling " | " delimiters.
