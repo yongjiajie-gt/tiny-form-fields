@@ -1588,7 +1588,54 @@ updateFormField msg fieldIndex string formFields formField =
                     { formField | type_ = ChooseOne { settings | filter = updatePrefix settings.filter } }
 
                 ChooseMultiple settings ->
-                    { formField | type_ = ChooseMultiple { settings | filter = updatePrefix settings.filter } }
+                    let
+                        newFilter =
+                            updatePrefix settings.filter
+
+                        newEffectiveCount =
+                            effectiveChoiceCount newFilter settings.choices
+
+                        newMinRequired =
+                            case settings.minRequired of
+                                Just min ->
+                                    if min > newEffectiveCount then
+                                        if newEffectiveCount > 0 then
+                                            Just newEffectiveCount
+
+                                        else
+                                            Nothing
+
+                                    else
+                                        Just min
+
+                                Nothing ->
+                                    Nothing
+
+                        newMaxAllowed =
+                            case settings.maxAllowed of
+                                Just max ->
+                                    if max > newEffectiveCount then
+                                        if newEffectiveCount > 0 then
+                                            Just newEffectiveCount
+
+                                        else
+                                            Nothing
+
+                                    else
+                                        Just max
+
+                                Nothing ->
+                                    Nothing
+                    in
+                    { formField
+                        | type_ =
+                            ChooseMultiple
+                                { settings
+                                    | filter = newFilter
+                                    , minRequired = newMinRequired
+                                    , maxAllowed = newMaxAllowed
+                                }
+                    }
 
                 _ ->
                     formField
