@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
 /* Error message styles */
 .tff-error h3 {
@@ -483,31 +481,28 @@
 /* Animation keyframes */
 @keyframes fadeOut {
 	0% {
-		@apply opacity-100;
+		opacity: 1;
 	}
-
 	100% {
-		@apply opacity-0;
+		opacity: 0;
 	}
 }
 
 @keyframes fadeIn {
 	0% {
-		@apply opacity-0;
+		opacity: 0;
 	}
-
 	100% {
-		@apply opacity-100;
+		opacity: 1;
 	}
 }
 
 @keyframes yellowFade {
 	0% {
-		@apply bg-blue-100;
+		background-color: #dbeafe;
 	}
-
 	100% {
-		@apply bg-transparent;
+		background-color: transparent;
 	}
 }
 
