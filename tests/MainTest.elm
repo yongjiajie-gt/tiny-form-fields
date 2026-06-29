@@ -1239,6 +1239,140 @@ suite =
                                     _ ->
                                         Expect.fail ("Expected ShortText but got " ++ Debug.toString t)
                            )
+            , test "OnFilterPrefixInput updates prefix on Dropdown" <|
+                \_ ->
+                    let
+                        formField =
+                            { field1
+                                | type_ =
+                                    Main.Dropdown
+                                        { choices = [ Main.Choice "venue-a-1" "Venue A 1" ]
+                                        , filter = Just (Main.FilterStartsWithPrefix "old")
+                                        }
+                            }
+                    in
+                    Main.updateFormField (Main.OnFilterPrefixInput "venue-a") 0 "" Array.empty formField
+                        |> .type_
+                        |> (\t ->
+                                case t of
+                                    Main.Dropdown s ->
+                                        Expect.equal (Just (Main.FilterStartsWithPrefix "venue-a")) s.filter
+
+                                    _ ->
+                                        Expect.fail ("Expected Dropdown but got " ++ Debug.toString t)
+                           )
+            , test "OnFilterPrefixInput updates prefix on ChooseOne" <|
+                \_ ->
+                    let
+                        formField =
+                            { field1
+                                | type_ =
+                                    Main.ChooseOne
+                                        { choices = [ Main.Choice "venue-a-1" "Venue A 1" ]
+                                        , filter = Just (Main.FilterStartsWithPrefix "old")
+                                        }
+                            }
+                    in
+                    Main.updateFormField (Main.OnFilterPrefixInput "venue-b") 0 "" Array.empty formField
+                        |> .type_
+                        |> (\t ->
+                                case t of
+                                    Main.ChooseOne s ->
+                                        Expect.equal (Just (Main.FilterStartsWithPrefix "venue-b")) s.filter
+
+                                    _ ->
+                                        Expect.fail ("Expected ChooseOne but got " ++ Debug.toString t)
+                           )
+            , test "OnFilterPrefixInput updates prefix on ChooseMultiple" <|
+                \_ ->
+                    let
+                        formField =
+                            { field1
+                                | type_ =
+                                    Main.ChooseMultiple
+                                        { choices = [ Main.Choice "venue-a-1" "Venue A 1" ]
+                                        , minRequired = Nothing
+                                        , maxAllowed = Nothing
+                                        , filter = Just (Main.FilterStartsWithPrefix "old")
+                                        }
+                            }
+                    in
+                    Main.updateFormField (Main.OnFilterPrefixInput "new-prefix") 0 "" Array.empty formField
+                        |> .type_
+                        |> (\t ->
+                                case t of
+                                    Main.ChooseMultiple s ->
+                                        Expect.equal (Just (Main.FilterStartsWithPrefix "new-prefix")) s.filter
+
+                                    _ ->
+                                        Expect.fail ("Expected ChooseMultiple but got " ++ Debug.toString t)
+                           )
+            , test "OnFilterPrefixInput does not change non-prefix filter" <|
+                \_ ->
+                    let
+                        formField =
+                            { field1
+                                | type_ =
+                                    Main.ChooseOne
+                                        { choices = [ Main.Choice "venue-a-1" "Venue A 1" ]
+                                        , filter = Just (Main.FilterStartsWithFieldValueOf "source")
+                                        }
+                            }
+                    in
+                    Main.updateFormField (Main.OnFilterPrefixInput "venue-a") 0 "" Array.empty formField
+                        |> .type_
+                        |> (\t ->
+                                case t of
+                                    Main.ChooseOne s ->
+                                        Expect.equal (Just (Main.FilterStartsWithFieldValueOf "source")) s.filter
+
+                                    _ ->
+                                        Expect.fail ("Expected ChooseOne but got " ++ Debug.toString t)
+                           )
+            , test "OnFilterTypeSelect startswith from FilterStartsWithPrefix transitions to FilterStartsWithFieldValueOf" <|
+                \_ ->
+                    let
+                        formField =
+                            { field1
+                                | type_ =
+                                    Main.ChooseOne
+                                        { choices = [ Main.Choice "venue-a-1" "Venue A 1" ]
+                                        , filter = Just (Main.FilterStartsWithPrefix "venue-a")
+                                        }
+                            }
+                    in
+                    Main.updateFormField (Main.OnFilterTypeSelect "startswith") 0 "" Array.empty formField
+                        |> .type_
+                        |> (\t ->
+                                case t of
+                                    Main.ChooseOne s ->
+                                        Expect.equal (Just (Main.FilterStartsWithFieldValueOf "")) s.filter
+
+                                    _ ->
+                                        Expect.fail ("Expected ChooseOne but got " ++ Debug.toString t)
+                           )
+            , test "OnFilterTypeSelect contains from FilterStartsWithPrefix transitions to FilterContainsFieldValueOf" <|
+                \_ ->
+                    let
+                        formField =
+                            { field1
+                                | type_ =
+                                    Main.ChooseOne
+                                        { choices = [ Main.Choice "venue-a-1" "Venue A 1" ]
+                                        , filter = Just (Main.FilterStartsWithPrefix "venue-a")
+                                        }
+                            }
+                    in
+                    Main.updateFormField (Main.OnFilterTypeSelect "contains") 0 "" Array.empty formField
+                        |> .type_
+                        |> (\t ->
+                                case t of
+                                    Main.ChooseOne s ->
+                                        Expect.equal (Just (Main.FilterContainsFieldValueOf "")) s.filter
+
+                                    _ ->
+                                        Expect.fail ("Expected ChooseOne but got " ++ Debug.toString t)
+                           )
             ]
         , describe "filterChoices"
             [ test "returns all choices when filter is Nothing" <|
@@ -1379,6 +1513,20 @@ suite =
                     in
                     Main.filterChoices (Just (Main.FilterStartsWithPrefix "xyz")) formValues choices
                         |> Expect.equal []
+            , test "FilterStartsWithPrefix matches display text (label field), not the submitted key (value field)" <|
+                \_ ->
+                    let
+                        -- Choice label=displayText value=key, as produced by choiceFromString "us | United States"
+                        choices =
+                            [ Main.Choice "United States" "us"
+                            , Main.Choice "Great Britain" "gb"
+                            ]
+
+                        formValues =
+                            Dict.empty
+                    in
+                    Main.filterChoices (Just (Main.FilterStartsWithPrefix "united")) formValues choices
+                        |> Expect.equal [ Main.Choice "United States" "us" ]
             ]
         , describe "filterValuesByFieldChoices"
             [ test "filters ChooseMultiple field values to only valid choices" <|
@@ -1567,6 +1715,118 @@ suite =
                 , test "equal minRequired and maxAllowed passes" <|
                     \_ ->
                         Main.editorFormValidity (Array.fromList [ chooseMultipleField [ "A", "B", "C" ] (Just 2) (Just 2) ])
+                            |> Expect.equal Nothing
+                ]
+            , let
+                chooseMultipleWithPrefix choices prefix minRequired maxAllowed =
+                    { label = "Pick some"
+                    , type_ =
+                        Main.ChooseMultiple
+                            { choices = List.map (\c -> Main.Choice c c) choices
+                            , minRequired = minRequired
+                            , maxAllowed = maxAllowed
+                            , filter = Just (Main.FilterStartsWithPrefix prefix)
+                            }
+                    , presence = Main.Required
+                    , description = Main.AttributeNotNeeded Nothing
+                    , name = Nothing
+                    , visibilityRule = []
+                    }
+              in
+              describe "ChooseMultiple min/max checked against prefix-filtered count"
+                [ test "minRequired satisfied by filtered choices passes" <|
+                    \_ ->
+                        Main.editorFormValidity (Array.fromList [ chooseMultipleWithPrefix [ "venue-a-1", "venue-a-2", "venue-b-1" ] "venue-a" (Just 2) Nothing ])
+                            |> Expect.equal Nothing
+                , test "minRequired exceeding filtered choices count is flagged" <|
+                    \_ ->
+                        Main.editorFormValidity (Array.fromList [ chooseMultipleWithPrefix [ "venue-a-1", "venue-b-1", "venue-b-2" ] "venue-a" (Just 2) Nothing ])
+                            |> Expect.equal (Just "\"Pick some\": minimum required exceeds number of choices")
+                , test "maxAllowed exceeding filtered choices count is flagged" <|
+                    \_ ->
+                        Main.editorFormValidity (Array.fromList [ chooseMultipleWithPrefix [ "venue-a-1", "venue-b-1", "venue-b-2" ] "venue-a" Nothing (Just 3) ])
+                            |> Expect.equal (Just "\"Pick some\": maximum allowed exceeds number of choices")
+                , test "empty prefix skips filtering so full count is used" <|
+                    \_ ->
+                        Main.editorFormValidity (Array.fromList [ chooseMultipleWithPrefix [ "venue-a-1", "venue-b-1", "venue-b-2" ] "" (Just 3) Nothing ])
+                            |> Expect.equal (Just "\"Pick some\": filter prefix cannot be empty")
+                ]
+            , describe "FilterStartsWithPrefix empty-prefix validation"
+                [ test "Dropdown with empty prefix is flagged" <|
+                    \_ ->
+                        let
+                            f =
+                                { label = "Room"
+                                , type_ =
+                                    Main.Dropdown
+                                        { choices = [ Main.Choice "room-a" "Room A" ]
+                                        , filter = Just (Main.FilterStartsWithPrefix "")
+                                        }
+                                , presence = Main.Required
+                                , description = Main.AttributeNotNeeded Nothing
+                                , name = Nothing
+                                , visibilityRule = []
+                                }
+                        in
+                        Main.editorFormValidity (Array.fromList [ f ])
+                            |> Expect.equal (Just "\"Room\": filter prefix cannot be empty")
+                , test "ChooseOne with empty prefix is flagged" <|
+                    \_ ->
+                        let
+                            f =
+                                { label = "Room"
+                                , type_ =
+                                    Main.ChooseOne
+                                        { choices = [ Main.Choice "room-a" "Room A" ]
+                                        , filter = Just (Main.FilterStartsWithPrefix "")
+                                        }
+                                , presence = Main.Required
+                                , description = Main.AttributeNotNeeded Nothing
+                                , name = Nothing
+                                , visibilityRule = []
+                                }
+                        in
+                        Main.editorFormValidity (Array.fromList [ f ])
+                            |> Expect.equal (Just "\"Room\": filter prefix cannot be empty")
+                , test "ChooseMultiple with empty prefix is flagged" <|
+                    \_ ->
+                        let
+                            f =
+                                { label = "Room"
+                                , type_ =
+                                    Main.ChooseMultiple
+                                        { choices = [ Main.Choice "room-a" "Room A" ]
+                                        , minRequired = Nothing
+                                        , maxAllowed = Nothing
+                                        , filter = Just (Main.FilterStartsWithPrefix "")
+                                        }
+                                , presence = Main.Required
+                                , description = Main.AttributeNotNeeded Nothing
+                                , name = Nothing
+                                , visibilityRule = []
+                                }
+                        in
+                        Main.editorFormValidity (Array.fromList [ f ])
+                            |> Expect.equal (Just "\"Room\": filter prefix cannot be empty")
+                , test "ChooseMultiple with non-empty prefix passes" <|
+                    \_ ->
+                        let
+                            f =
+                                { label = "Room"
+                                , type_ =
+                                    Main.ChooseMultiple
+                                        { choices = [ Main.Choice "room-a" "Room A" ]
+                                        , minRequired = Nothing
+                                        , maxAllowed = Nothing
+                                        , filter = Just (Main.FilterStartsWithPrefix "room")
+                                        }
+                                , presence = Main.Required
+                                , description = Main.AttributeNotNeeded Nothing
+                                , name = Nothing
+                                , visibilityRule = []
+                                }
+                        in
+                        Main.editorFormValidity (Array.fromList [ f ])
                             |> Expect.equal Nothing
                 ]
             ]

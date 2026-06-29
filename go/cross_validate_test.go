@@ -392,7 +392,7 @@ func TestGenerateGoFixtures(t *testing.T) {
 						Choices: []string{"venue-a-1 | Venue A Room 1", "venue-b-1 | Venue B Room 1"},
 						Filter: &ChoiceFilter{
 							Type:   "FilterStartsWithPrefix",
-							Prefix: "venue-a",
+							Prefix: "Venue A",
 						},
 					},
 					VisibilityRule: nil,

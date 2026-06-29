@@ -203,14 +203,18 @@ type ChoiceFilter struct {
 	Prefix    string `json:"prefix,omitempty"`
 }
 
-func applyPrefixFilter(choices []string, filter *ChoiceFilter) []string {
+// applyPrefixFilter filters raw choice strings by their display label (right side of " | ",
+// or the whole string if no delimiter). Must be called BEFORE parseChoices.
+func applyPrefixFilter(rawChoices []string, filter *ChoiceFilter) []string {
 	if filter == nil || filter.Type != "FilterStartsWithPrefix" || filter.Prefix == "" {
-		return choices
+		return rawChoices
 	}
 	prefix := strings.ToLower(filter.Prefix)
 	var result []string
-	for _, c := range choices {
-		if strings.HasPrefix(strings.ToLower(c), prefix) {
+	for _, c := range rawChoices {
+		parts := strings.SplitN(c, " | ", 2)
+		label := strings.TrimSpace(parts[len(parts)-1])
+		if strings.HasPrefix(strings.ToLower(label), prefix) {
 			result = append(result, c)
 		}
 	}
@@ -266,7 +270,7 @@ func (f *DropdownField) Validate(value []string, field TinyFormField) error {
 	val := value[0]
 
 	// Parse choices
-	parsedChoices := applyPrefixFilter(parseChoices(f.Choices), f.Filter)
+	parsedChoices := parseChoices(applyPrefixFilter(f.Choices, f.Filter))
 
 	// Check that val is one of the allowed values
 	if slices.Index(parsedChoices, val) == -1 {
@@ -311,7 +315,7 @@ func (f *ChooseOneField) Validate(value []string, field TinyFormField) error {
 	val := value[0]
 
 	// Parse choices
-	parsedChoices := applyPrefixFilter(parseChoices(f.Choices), f.Filter)
+	parsedChoices := parseChoices(applyPrefixFilter(f.Choices, f.Filter))
 
 	// Check that val is one of the allowed values
 	if slices.Index(parsedChoices, val) == -1 {
@@ -370,7 +374,7 @@ func (f *ChooseMultipleField) Validate(value []string, field TinyFormField) erro
 	}
 
 	// Parse choices
-	parsedChoices := applyPrefixFilter(parseChoices(f.Choices), f.Filter)
+	parsedChoices := parseChoices(applyPrefixFilter(f.Choices, f.Filter))
 
 	// Check that each value is among the allowed values
 	for _, val := range distinct {

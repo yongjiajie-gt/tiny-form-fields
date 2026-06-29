@@ -3,6 +3,7 @@ package tinyformfields
 import (
 	"errors"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -2074,6 +2075,130 @@ func TestChooseMultipleDedupsMaxAllowed(t *testing.T) {
 			}
 			if !errors.Is(err, tc.wantErr) {
 				t.Errorf("expected error %v, got %v", tc.wantErr, err)
+			}
+		})
+	}
+}
+
+func TestFilterStartsWithPrefix(t *testing.T) {
+	cases := []struct {
+		name      string
+		fieldType string
+		choices   []string
+		prefix    string
+		value     []string
+		wantErr   error
+	}{
+		{
+			name:      "ChooseOne: value matching prefix accepted",
+			fieldType: "ChooseOne",
+			choices:   []string{"venue-a-1", "venue-b-1"},
+			prefix:    "venue-a",
+			value:     []string{"venue-a-1"},
+			wantErr:   nil,
+		},
+		{
+			name:      "ChooseOne: value not matching prefix rejected",
+			fieldType: "ChooseOne",
+			choices:   []string{"venue-a-1", "venue-b-1"},
+			prefix:    "venue-a",
+			value:     []string{"venue-b-1"},
+			wantErr:   ErrInvalidChoice,
+		},
+		{
+			name:      "ChooseOne: prefix match is case-insensitive",
+			fieldType: "ChooseOne",
+			choices:   []string{"Venue-A-1", "venue-b-1"},
+			prefix:    "venue-a",
+			value:     []string{"Venue-A-1"},
+			wantErr:   nil,
+		},
+		{
+			name:      "Dropdown: value matching prefix accepted",
+			fieldType: "Dropdown",
+			choices:   []string{"venue-a-1", "venue-b-1"},
+			prefix:    "venue-a",
+			value:     []string{"venue-a-1"},
+			wantErr:   nil,
+		},
+		{
+			name:      "Dropdown: value not matching prefix rejected",
+			fieldType: "Dropdown",
+			choices:   []string{"venue-a-1", "venue-b-1"},
+			prefix:    "venue-a",
+			value:     []string{"venue-b-1"},
+			wantErr:   ErrInvalidChoice,
+		},
+		{
+			name:      "ChooseMultiple: all values matching prefix accepted",
+			fieldType: "ChooseMultiple",
+			choices:   []string{"venue-a-1", "venue-a-2", "venue-b-1"},
+			prefix:    "venue-a",
+			value:     []string{"venue-a-1", "venue-a-2"},
+			wantErr:   nil,
+		},
+		{
+			name:      "ChooseMultiple: value not matching prefix rejected",
+			fieldType: "ChooseMultiple",
+			choices:   []string{"venue-a-1", "venue-a-2", "venue-b-1"},
+			prefix:    "venue-a",
+			value:     []string{"venue-a-1", "venue-b-1"},
+			wantErr:   ErrInvalidChoice,
+		},
+		{
+			name:      "empty prefix disables filter: any choice accepted",
+			fieldType: "ChooseOne",
+			choices:   []string{"venue-a-1", "venue-b-1"},
+			prefix:    "",
+			value:     []string{"venue-b-1"},
+			wantErr:   nil,
+		},
+		{
+			name:      "piped choices: label (right side) matching prefix accepted",
+			fieldType: "ChooseOne",
+			choices:   []string{"r | Red", "g | Green"},
+			prefix:    "red",
+			value:     []string{"r"},
+			wantErr:   nil,
+		},
+		{
+			name:      "piped choices: label not matching prefix rejected",
+			fieldType: "ChooseOne",
+			choices:   []string{"r | Red", "g | Green"},
+			prefix:    "green",
+			value:     []string{"r"},
+			wantErr:   ErrInvalidChoice,
+		},
+		{
+			name:      "piped choices: value key alone does not satisfy label-only prefix",
+			fieldType: "ChooseOne",
+			choices:   []string{"us | United States", "gb | Great Britain"},
+			prefix:    "united",
+			value:     []string{"gb"},
+			wantErr:   ErrInvalidChoice,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			quoted := make([]string, len(tc.choices))
+			for i, c := range tc.choices {
+				quoted[i] = `"` + c + `"`
+			}
+			choicesJSON := "[" + strings.Join(quoted, ",") + "]"
+			formFields := `[{"name":"room","presence":"Required","label":"Room","type":{"type":"` +
+				tc.fieldType + `","choices":` + choicesJSON +
+				`,"filter":{"type":"FilterStartsWithPrefix","prefix":"` + tc.prefix + `"}}}]`
+			values := url.Values{"room": tc.value}
+			err := ValidFormValues([]byte(formFields), values)
+			if tc.wantErr == nil {
+				if err != nil {
+					t.Errorf("expected nil, got %v", err)
+				}
+				return
+			}
+			if !errors.Is(err, tc.wantErr) {
+				t.Errorf("expected %v, got %v", tc.wantErr, err)
 			}
 		})
 	}

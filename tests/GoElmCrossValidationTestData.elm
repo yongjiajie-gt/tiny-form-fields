@@ -18,7 +18,7 @@ choose_multiple_field_fixtureJson =
 -}
 choose_one_field_fixtureJson : String
 choose_one_field_fixtureJson =
-    """[{"label":"basic","presence":"Optional","type":{"type":"ChooseOne","choices":["Yes","No"]}},{"label":"complex","presence":"Optional","type":{"type":"ChooseOne","choices":["y | Yes","n | No"],"filter":{"type":"Field","fieldName":"another_field"}}}]"""
+    """[{"label":"basic","presence":"Optional","type":{"type":"ChooseOne","choices":["Yes","No"]}},{"label":"complex","presence":"Optional","type":{"type":"ChooseOne","choices":["y | Yes","n | No"],"filter":{"type":"Field","fieldName":"another_field"}}},{"label":"prefix-filter","presence":"Optional","type":{"type":"ChooseOne","choices":["venue-a-1 | Venue A Room 1","venue-b-1 | Venue B Room 1"],"filter":{"type":"FilterStartsWithPrefix","prefix":"Venue A"}}}]"""
 
 
 {-| JSON content from go\_dropdown\_field\_fixture.json

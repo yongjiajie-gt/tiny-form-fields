@@ -1011,12 +1011,15 @@ updateFormField msg fieldIndex string formFields formField =
                                 ( minValue, _ ) ->
                                     minValue
 
-                        -- Ensure min doesn't exceed number of choices
+                        -- Ensure min doesn't exceed number of (prefix-filtered) choices
+                        choiceCap =
+                            effectiveChoiceCount settings.filter settings.choices
+
                         finalMinRequired =
                             case adjustedMinRequired of
                                 Just min ->
-                                    if min > List.length settings.choices then
-                                        Just (List.length settings.choices)
+                                    if min > choiceCap then
+                                        Just choiceCap
 
                                     else
                                         Just min
@@ -1059,12 +1062,15 @@ updateFormField msg fieldIndex string formFields formField =
                                 ( maxValue, _ ) ->
                                     maxValue
 
-                        -- Ensure max doesn't exceed number of choices
+                        -- Ensure max doesn't exceed number of (prefix-filtered) choices
+                        maxChoiceCap =
+                            effectiveChoiceCount settings.filter settings.choices
+
                         finalMaxAllowed =
                             case adjustedMaxAllowed of
                                 Just max ->
-                                    if max > List.length settings.choices then
-                                        Just (List.length settings.choices)
+                                    if max > maxChoiceCap then
+                                        Just maxChoiceCap
 
                                     else
                                         Just max
@@ -1146,17 +1152,17 @@ updateFormField msg fieldIndex string formFields formField =
                         newChoices =
                             List.map choiceFromString (String.lines string)
 
-                        newChoicesCount =
-                            List.length newChoices
+                        newEffectiveCount =
+                            effectiveChoiceCount settings.filter newChoices
 
-                        -- Adjust minRequired if it exceeds new choices count
+                        -- Adjust minRequired if it exceeds number of (prefix-filtered) choices
                         newMinRequired =
                             case settings.minRequired of
                                 Just min ->
-                                    if min > newChoicesCount then
-                                        -- Cap at the new number of choices
-                                        if newChoicesCount > 0 then
-                                            Just newChoicesCount
+                                    if min > newEffectiveCount then
+                                        -- Cap at the effective number of choices
+                                        if newEffectiveCount > 0 then
+                                            Just newEffectiveCount
 
                                         else
                                             Nothing
@@ -1167,14 +1173,14 @@ updateFormField msg fieldIndex string formFields formField =
                                 Nothing ->
                                     Nothing
 
-                        -- Adjust maxAllowed if it exceeds new choices count
+                        -- Adjust maxAllowed if it exceeds number of (prefix-filtered) choices
                         newMaxAllowed =
                             case settings.maxAllowed of
                                 Just max ->
-                                    if max > newChoicesCount then
-                                        -- Cap at the new number of choices
-                                        if newChoicesCount > 0 then
-                                            Just newChoicesCount
+                                    if max > newEffectiveCount then
+                                        -- Cap at the effective number of choices
+                                        if newEffectiveCount > 0 then
+                                            Just newEffectiveCount
 
                                         else
                                             Nothing
@@ -3774,11 +3780,38 @@ selectedFieldIsInvalid model =
                 Just formField ->
                     String.isEmpty (String.trim formField.label)
                         || hasDuplicateLabel prevIndex formField.label model.formFields
+                        || fieldHasEmptyPrefix formField
 
                 Nothing ->
                     False
 
         Nothing ->
+            False
+
+
+effectiveChoiceCount : Maybe ChoiceFilter -> List Choice -> Int
+effectiveChoiceCount filter choices =
+    case filter of
+        Just (FilterStartsWithPrefix _) ->
+            filterChoices filter Dict.empty choices |> List.length
+
+        _ ->
+            List.length choices
+
+
+fieldHasEmptyPrefix : FormField -> Bool
+fieldHasEmptyPrefix formField =
+    case formField.type_ of
+        Dropdown { filter } ->
+            filter == Just (FilterStartsWithPrefix "")
+
+        ChooseOne { filter } ->
+            filter == Just (FilterStartsWithPrefix "")
+
+        ChooseMultiple { filter } ->
+            filter == Just (FilterStartsWithPrefix "")
+
+        _ ->
             False
 
 
@@ -3804,12 +3837,15 @@ editorFormValidity formFields =
 
                         else
                             case f.type_ of
-                                ChooseMultiple { choices, minRequired, maxAllowed } ->
+                                ChooseMultiple { choices, minRequired, maxAllowed, filter } ->
                                     let
                                         choiceCount =
-                                            List.length choices
+                                            effectiveChoiceCount filter choices
                                     in
-                                    if Maybe.map (\min -> min > choiceCount) minRequired |> Maybe.withDefault False then
+                                    if fieldHasEmptyPrefix f then
+                                        Just ("\"" ++ f.label ++ "\": filter prefix cannot be empty")
+
+                                    else if Maybe.map (\min -> min > choiceCount) minRequired |> Maybe.withDefault False then
                                         Just ("\"" ++ f.label ++ "\": minimum required exceeds number of choices")
 
                                     else if Maybe.map (\max -> max > choiceCount) maxAllowed |> Maybe.withDefault False then
@@ -3822,27 +3858,11 @@ editorFormValidity formFields =
                                         Nothing
 
                                 _ ->
-                                    let
-                                        filter =
-                                            case f.type_ of
-                                                Dropdown s ->
-                                                    s.filter
+                                    if fieldHasEmptyPrefix f then
+                                        Just ("\"" ++ f.label ++ "\": filter prefix cannot be empty")
 
-                                                ChooseOne s ->
-                                                    s.filter
-
-                                                ChooseMultiple s ->
-                                                    s.filter
-
-                                                _ ->
-                                                    Nothing
-                                    in
-                                    case filter of
-                                        Just (FilterStartsWithPrefix "") ->
-                                            Just ("\"" ++ f.label ++ "\": filter prefix cannot be empty")
-
-                                        _ ->
-                                            Nothing
+                                    else
+                                        Nothing
                     )
                 |> List.head
     in
@@ -5354,14 +5374,13 @@ filterChoices maybeFilter formValues choices =
                 choices
 
             else
+                let
+                    loweredPrefix =
+                        String.toLower prefix
+                in
                 List.filter
                     (\choice ->
-                        String.startsWith
-                            (String.toLower prefix)
-                            (String.toLower choice.value)
-                            || String.startsWith
-                                (String.toLower prefix)
-                                (String.toLower choice.label)
+                        String.startsWith loweredPrefix (String.toLower choice.label)
                     )
                     choices
 
