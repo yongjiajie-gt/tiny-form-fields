@@ -3471,6 +3471,7 @@ viewFormFieldOptionsBuilder shortTextTypeList index formFields formField =
                                 , class "tff-text-field"
                                 , placeholder "Enter prefix..."
                                 , value prefixValue
+                                , attribute "required" "true"
                                 , onInput (\v -> OnFormField (OnFilterPrefixInput v) index "")
                                 ]
                                 []
@@ -3821,7 +3822,27 @@ editorFormValidity formFields =
                                         Nothing
 
                                 _ ->
-                                    Nothing
+                                    let
+                                        filter =
+                                            case f.type_ of
+                                                Dropdown s ->
+                                                    s.filter
+
+                                                ChooseOne s ->
+                                                    s.filter
+
+                                                ChooseMultiple s ->
+                                                    s.filter
+
+                                                _ ->
+                                                    Nothing
+                                    in
+                                    case filter of
+                                        Just (FilterStartsWithPrefix "") ->
+                                            Just ("\"" ++ f.label ++ "\": filter prefix cannot be empty")
+
+                                        _ ->
+                                            Nothing
                     )
                 |> List.head
     in
