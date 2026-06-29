@@ -3460,7 +3460,7 @@ viewFormFieldOptionsBuilder shortTextTypeList index formFields formField =
                                 ]
                                 [ option [ value "startswith" ] [ text "Show choices that starts with" ]
                                 , option [ value "contains" ] [ text "Show choices that contains" ]
-                                , option [ value "startswithprefix" ] [ text "Show choices that start with prefix" ]
+                                , option [ value "startswithprefix" ] [ text "Show choices that start with" ]
                                 ]
                             ]
                         ]
